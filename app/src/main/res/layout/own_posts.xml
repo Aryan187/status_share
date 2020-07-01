@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/Heading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20sp"
+        android:gravity="center"
+        android:text="@string/status_share"
+        android:textSize="60sp" />
+
+    <TextView
+        android:id="@+id/OwnStatusHead"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:gravity="center_horizontal"
+        android:text="Your Posts" />
+
+    <ListView
+        android:id="@+id/ownstatus"
+        android:layout_width="match_parent"
+        android:layout_height="555dp"></ListView>
+
+    <Button
+        android:id="@+id/GoBack"
+        android:onClick="BackToMain"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/go_back" />
+
+</LinearLayout>

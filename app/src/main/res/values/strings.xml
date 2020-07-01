@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Status Share</string>
+    <string name="status_share">Status Share</string>
+    <string name="username_head">Username</string>
+    <string name="password_head">Password</string>
+    <string name="login">Login</string>
+    <string name="register_head">Don\'t have an account?</string>
+    <string name="register">Register</string>
+    <string name="go_back">Go Back</string>
+</resources>

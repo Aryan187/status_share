@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    >
+    <TextView
+        android:id="@+id/Heading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20sp"
+        android:gravity="center"
+        android:text="@string/status_share"
+        android:textSize="60sp" />
+    <TextView
+        android:id="@+id/PostStatusHead"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30sp"
+        android:textSize="20sp"
+        android:text="Type your status here (200 words)" />
+
+    <EditText
+        android:id="@+id/Status"
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:autofillHints=""
+        android:ems="10"
+        android:inputType="textMultiLine"
+        android:text=""
+        android:textSize="20sp" />
+
+    <Button
+        android:id="@+id/PostButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="doPost"
+        android:text="Post" />
+
+    <Button
+        android:id="@+id/GoBack"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="340sp"
+        android:onClick="BackToMain"
+        android:text="@string/go_back" />
+</LinearLayout>

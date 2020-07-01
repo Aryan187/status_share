@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:orientation="vertical"
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/Heading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20sp"
+        android:gravity="center"
+        android:text="@string/status_share"
+        android:textSize="60sp" />
+
+    <Button
+        android:id="@+id/post_status"
+        android:layout_width="match_parent"
+        android:layout_marginTop="40sp"
+        android:onClick="onPost"
+        android:layout_height="wrap_content"
+        android:text="Post Status" />
+
+    <Button
+        android:id="@+id/your_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="onStatusHistory"
+        android:text="Your Status History" />
+
+    <Button
+        android:id="@+id/feed"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="onFeed"
+        android:text="Show Feed" />
+
+    <Button
+        android:id="@+id/friends"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="onYourFriends"
+        android:text="Your Friends" />
+
+    <Button
+        android:id="@+id/pend_req"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="onPending"
+        android:text="Pending Friend Requests" />
+
+    <Button
+        android:id="@+id/search"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="onSearchUsers"
+        android:text="Search Users" />
+
+    <Button
+        android:id="@+id/logout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="250sp"
+        android:onClick="onLogOut"
+        android:text="Log Out" />
+
+
+</LinearLayout>
