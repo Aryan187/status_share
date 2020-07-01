@@ -20,7 +20,7 @@ public class DBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL("CREATE TABLE status (status TEXT, user_id_fk INTEGER, timestamp TEXT, user_name TEXT);");
+        db.execSQL("CREATE TABLE status (status_id INTEGER, status TEXT, user_id_fk INTEGER, timestamp TEXT, user_name TEXT);");
         db.execSQL("CREATE TABLE friends (friend_id INTEGER , friend_name TEXT, friend_status INTEGER);");
     }
 
@@ -35,29 +35,29 @@ public class DBHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DROP TABLE IF EXISTS status;");
         db.execSQL("DROP TABLE IF EXISTS friends;");
-        db.execSQL("CREATE TABLE status (status TEXT, user_id_fk INTEGER, timestamp TEXT, user_name TEXT);");
+        db.execSQL("CREATE TABLE status (status_id INTEGER, status TEXT, user_id_fk INTEGER, timestamp TEXT, user_name TEXT);");
         db.execSQL("CREATE TABLE friends (friend_id INTEGER , friend_name TEXT, friend_status INTEGER);");
     }
 
-    public boolean addPost(String status2, int uid, String timestamp, String uname) {
+    public boolean addPost(String status2, int uid, String timestamp, String uname, int stid) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res = db.query("status", new String[]{"status", "timestamp"}, "status = ? AND user_id_fk = ?", new String[]{status2,String.valueOf(uid)}, null, null, "timestamp");
+        Cursor res = db.query("status", new String[]{"status", "timestamp"}, "status_id = ?", new String[]{String.valueOf(stid)}, null, null, "timestamp");
         int n = res.getCount();
         res.close();
         if (n >= 1)
             return true;
         db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
-        //contentValues.put("status_id",1);
         contentValues.put("status", status2);
         contentValues.put("user_id_fk", uid);
         contentValues.put("timestamp",timestamp);
         contentValues.put("user_name",uname);
+        contentValues.put("status_id",stid);
         db.insert("status", null, contentValues);
         return true;
     }
 
-    public String[] getOwnPosts(int uid) {
+    public String[] getOwnPostStatus(int uid) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor res = db.query("status", new String[]{"status", "timestamp"}, "user_id_fk = ?", new String[]{String.valueOf(uid)}, null, null, "timestamp desc");
         res.moveToFirst();
@@ -65,7 +65,7 @@ public class DBHelper extends SQLiteOpenHelper {
         String[] status = new String[n];
         int i = 0;
         while (!res.isAfterLast()) {
-            status[i] = res.getString(res.getColumnIndex("status")) + "   " + res.getString(res.getColumnIndex("timestamp"));
+            status[i] = res.getString(res.getColumnIndex("status"));
             i++;
             res.moveToNext();
         }
@@ -73,7 +73,23 @@ public class DBHelper extends SQLiteOpenHelper {
         return status;
     }
 
-    public String[] showFeed() {
+    public String[] getOwnPostTimestamp(int uid) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor res = db.query("status", new String[]{"status", "timestamp"}, "user_id_fk = ?", new String[]{String.valueOf(uid)}, null, null, "timestamp desc");
+        res.moveToFirst();
+        int n = res.getCount();
+        String[] status = new String[n];
+        int i = 0;
+        while (!res.isAfterLast()) {
+            status[i] = res.getString(res.getColumnIndex("timestamp"));
+            i++;
+            res.moveToNext();
+        }
+        res.close();
+        return status;
+    }
+
+    public String[] showFeedUsername() {
         SQLiteDatabase db = this.getReadableDatabase();
         //Cursor res = db.rawQuery("SELECT * from status;",null);
         Cursor res = db.query("status", new String[]{"status", "timestamp","user_name"}, null, null, null, null, "timestamp desc");
@@ -82,7 +98,41 @@ public class DBHelper extends SQLiteOpenHelper {
         String[] status = new String[n];
         int i = 0;
         while (!res.isAfterLast()) {
-            status[i] = res.getString(res.getColumnIndex("user_name")) + ":   "+ res.getString(res.getColumnIndex("status")) + "   " + res.getString(res.getColumnIndex("timestamp"));
+            status[i] = res.getString(res.getColumnIndex("user_name"));
+            i++;
+            res.moveToNext();
+        }
+        res.close();
+        return status;
+    }
+
+    public String[] showFeedStatus() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        //Cursor res = db.rawQuery("SELECT * from status;",null);
+        Cursor res = db.query("status", new String[]{"status", "timestamp","user_name"}, null, null, null, null, "timestamp desc");
+        res.moveToFirst();
+        int n = res.getCount();
+        String[] status = new String[n];
+        int i = 0;
+        while (!res.isAfterLast()) {
+            status[i] = res.getString(res.getColumnIndex("status"));
+            i++;
+            res.moveToNext();
+        }
+        res.close();
+        return status;
+    }
+
+    public String[] showFeedTimeStamp() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        //Cursor res = db.rawQuery("SELECT * from status;",null);
+        Cursor res = db.query("status", new String[]{"status", "timestamp","user_name"}, null, null, null, null, "timestamp desc");
+        res.moveToFirst();
+        int n = res.getCount();
+        String[] status = new String[n];
+        int i = 0;
+        while (!res.isAfterLast()) {
+            status[i] = res.getString(res.getColumnIndex("timestamp"));
             i++;
             res.moveToNext();
         }
@@ -136,6 +186,22 @@ public class DBHelper extends SQLiteOpenHelper {
         int i = 0;
         while (!res.isAfterLast()) {
             friends[i] = res.getString(res.getColumnIndex("friend_name"));
+            i++;
+            res.moveToNext();
+        }
+        res.close();
+        return friends;
+    }
+
+    public int[] getFriendsID(){
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor res = db.query("friends", new String[]{"friend_id"}, "friend_status = 1", null, null, null, null);
+        res.moveToFirst();
+        int n = res.getCount();
+        int[] friends = new int[n];
+        int i = 0;
+        while (!res.isAfterLast()) {
+            friends[i] = Integer.parseInt(res.getString(res.getColumnIndex("friend_id")));
             i++;
             res.moveToNext();
         }

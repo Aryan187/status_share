@@ -9,7 +9,10 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
 import android.text.TextUtils;
+import android.util.Base64;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -36,10 +39,25 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.UnrecoverableEntryException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.net.ssl.HttpsURLConnection;
 
 public class MainActivity extends AppCompatActivity {
@@ -90,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void onStatusHistory (View view){
         String URL = "http://192.168.0.10/Android/showownposts.php";
-        getOwnPost(uid,URL,"random");
+        getOwnPost(uid,URL,uname);
     }
 
     public void onSearch (View view){
@@ -155,6 +173,65 @@ public class MainActivity extends AppCompatActivity {
     public void onYourFriends (View view){
         String url = "http://192.168.0.10/Android/showfriends.php";
         ShowFriends(url);
+    }
+
+    private static KeyStore getKeyStore() {
+        KeyStore keyStore = null;
+        try {
+            keyStore = KeyStore.getInstance("AndroidKeyStore");
+            keyStore.load(null);
+        } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | IOException e) {
+            e.printStackTrace();
+        }
+        return keyStore;
+    }
+
+    private String Encrypt (String message, String alias)  {
+        try {
+            KeyStore keyStore = getKeyStore();
+            SecretKey secretKey;
+            if (!keyStore.containsAlias(alias)) {
+                final KeyGenerator keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
+                final KeyGenParameterSpec keyGenParameterSpec = new KeyGenParameterSpec.Builder(alias,
+                        KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
+                        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                        .setRandomizedEncryptionRequired(false)
+                        .build();
+                keyGenerator.init(keyGenParameterSpec);
+                secretKey = keyGenerator.generateKey();
+            }
+            else{
+                secretKey = ((KeyStore.SecretKeyEntry)keyStore.getEntry(alias,null)).getSecretKey();
+            }
+            final Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            byte[] encrypted = cipher.doFinal(message.getBytes());
+            return Base64.encodeToString(cipher.getIV(), Base64.URL_SAFE)+Base64.encodeToString(encrypted, Base64.URL_SAFE);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            return "";
+        }
+    }
+
+    private String Decrypt (String message, String alias){
+        try {
+            KeyStore keyStore = getKeyStore();
+            if (!keyStore.containsAlias(alias))
+                return alias;
+            SecretKey secretKey;
+            secretKey = ((KeyStore.SecretKeyEntry)keyStore.getEntry(alias,null)).getSecretKey();
+            final Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            final GCMParameterSpec spec = new GCMParameterSpec(128, Base64.decode((message.substring(0,16)), Base64.URL_SAFE));
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
+            byte[] decrypted = cipher.doFinal(Base64.decode((message.substring(16)), Base64.URL_SAFE));
+            return new String(decrypted);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+            return e.toString();
+        }
     }
 
     private boolean SessionFailed (String s){
@@ -321,8 +398,14 @@ public class MainActivity extends AppCompatActivity {
         TextView view = (TextView) findViewById(R.id.OwnStatusHead);
         view.setText("Your Feed");
         Toast.makeText(getApplicationContext(),"Offline Mode. Please connect to internet and refresh",Toast.LENGTH_LONG).show();
-        String[] status = cache.showFeed();
-        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, status);
+        String[] status = cache.showFeedStatus();
+        String[] timestamp = cache.showFeedTimeStamp();
+        String[] username = cache.showFeedUsername();
+        String[] res = new String[status.length];
+        for (int i = 0; i < status.length; i++){
+            res[i] = username[i]+":   "+ Decrypt(status[i],username[i]+timestamp[i])+"   "+timestamp[i];
+        }
+        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, res);
         ListView listView = (ListView) findViewById(R.id.ownstatus);
         listView.setAdapter(arrayAdapter);
     }
@@ -374,7 +457,7 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < n - 2; i++) {
             JSONObject obj = new JSONObject(js.getString(String.valueOf(i)));
             status[i] = obj.getString("uname") + ":    " + obj.getString("status") + "   " + obj.getString("time");
-            cache.addPost(obj.getString("status"),obj.getInt("uid"),obj.getString("time"),obj.getString("uname"));
+            cache.addPost(Encrypt(obj.getString("status"),obj.getString("uname")+obj.getString("time")),obj.getInt("uid"),obj.getString("time"),obj.getString("uname"),obj.getInt("statusid"));
             //Toast.makeText(getApplicationContext(),status[i],Toast.LENGTH_LONG).show();
         }
 
@@ -392,10 +475,20 @@ public class MainActivity extends AppCompatActivity {
 
     private void ShowFriendsOffline (){
         setContentView(R.layout.your_friends);
-        String[] names = cache.getFriends();
+        Toast.makeText(getApplicationContext(),"Offline Mode. Please connect to internet and refresh",Toast.LENGTH_LONG).show();
+        final String[] names = cache.getFriends();
+        final int[] ID = cache.getFriendsID();
         ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, names);
         ListView listView = (ListView) findViewById(R.id.searchlist);
         listView.setAdapter(arrayAdapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener()
+        {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                getOwnPostOffline(ID[position],names[position]);
+                //Toast.makeText(MainActivity.this, status[position], Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void ShowFriends (final String URL2){
@@ -438,6 +531,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void ShowPendingOffline (){
         setContentView(R.layout.pending_requests);
+        Toast.makeText(getApplicationContext(),"Offline Mode. Please connect to internet and refresh",Toast.LENGTH_LONG).show();
         String[] names = cache.getPendingFriends();
         ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, names);
         ListView listView = (ListView) findViewById(R.id.pendinglist);
@@ -562,14 +656,14 @@ public class MainActivity extends AppCompatActivity {
         x.execute();
     }
 
-    private void LoadIntoList (String json, int usid) throws JSONException {
+    private void LoadIntoList (String json, int usid, String uname) throws JSONException {
             JSONObject js = new JSONObject(json);
             int n = (int) (js.get("size"));
             final String[] status = new String[n - 2];
             for (int i = 0; i < n - 2; i++) {
                 JSONObject obj = new JSONObject(js.getString(String.valueOf(i)));
                 status[i] = obj.getString("status") + "   " + obj.getString("time");
-                cache.addPost(obj.getString("status"),usid,obj.getString("time"),"");
+                cache.addPost(obj.getString("status"),usid,obj.getString("time"),uname,obj.getInt("statusid"));
                 //Toast.makeText(getApplicationContext(),status[i],Toast.LENGTH_LONG).show();
             }
 
@@ -585,15 +679,20 @@ public class MainActivity extends AppCompatActivity {
             });
     }
 
-    private void getOwnPostOffline(int usid){
+    private void getOwnPostOffline(int usid, String uname){
         setContentView(R.layout.own_posts);
         if (usid != uid){
             TextView view = (TextView) findViewById(R.id.OwnStatusHead);
-            view.setText(uname+"'s Posts");
+                view.setText(uname+"'s Posts");
         }
         Toast.makeText(getApplicationContext(),"Offline Mode. Please connect to internet and refresh",Toast.LENGTH_LONG).show();
-        String[] status = cache.getOwnPosts(usid);
-        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, status);
+        String[] status = cache.getOwnPostStatus(usid);
+        String[] timestamp = cache.getOwnPostTimestamp(usid);
+        String[] res = new String[status.length];
+        for (int i = 0; i < status.length; i++) {
+            res[i] = Decrypt(status[i], uname + timestamp[i]) + "   " + timestamp[i];
+        }
+        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, res);
         ListView listView = (ListView) findViewById(R.id.ownstatus);
         listView.setAdapter(arrayAdapter);
     }
@@ -608,7 +707,7 @@ public class MainActivity extends AppCompatActivity {
             protected void onPostExecute(String s) {
                 super.onPostExecute(s);
                 if (s.equals("timeout")){
-                    getOwnPostOffline(usid);
+                    getOwnPostOffline(usid,uname);
                     return;
                 }
                 if (SessionFailed(s)){
@@ -620,7 +719,7 @@ public class MainActivity extends AppCompatActivity {
                     view.setText(uname+"'s Posts");
                 }
                 try {
-                    LoadIntoList(s,usid);
+                    LoadIntoList(s,usid,uname);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
