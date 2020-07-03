@@ -18,16 +18,16 @@ if($_SERVER['REQUEST_METHOD']=='POST'){
 	
 	$userid = $_POST['id'];
 		
-	$stmt = $conn->prepare("SELECT status, timestamp from status WHERE user_id_fk = ? ORDER BY timestamp DESC;");
+	$stmt = $conn->prepare("SELECT status_id, status, timestamp from status WHERE user_id_fk = ? ORDER BY timestamp DESC;");
 	$stmt->bind_param("s",$userid);
 		
 	//if data inserts successfully
 	if($stmt->execute()){
 		$response['error'] = false; 
 		$response['message'] = 'Query Successful';
-		$stmt->bind_result($status,$time);
+		$stmt->bind_result($statusid,$status,$time);
 		while ($stmt->fetch()){
-			$temp = ['status'=>$status,'time'=>$time];
+			$temp = ['statusid'=>$statusid,'status'=>$status,'time'=>$time];
 			array_push($response,$temp);
 		}
 	}else{
