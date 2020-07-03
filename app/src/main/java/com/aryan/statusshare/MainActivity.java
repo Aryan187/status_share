@@ -21,44 +21,40 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.HttpCookie;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLEncoder;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.UnrecoverableEntryException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Map;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -66,6 +62,16 @@ public class MainActivity extends AppCompatActivity {
     private int uid = 0;
     static final String COOKIES_HEADER = "Set-Cookie";
     static final String COOKIE = "Cookie";
+    final static HostnameVerifier VERIFY_LOCALHOST = new HostnameVerifier()
+    {
+        public boolean verify(String hostname, SSLSession session)
+        {
+            if (hostname.equals("192.168.0.10"))
+                return true;
+            else
+                return false;
+        }
+    };
     static CookieManager msCookieManager = new CookieManager();
     DBHelper cache;
 
@@ -77,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
         uid = 0;
         msCookieManager = new CookieManager();
         cache = new DBHelper(this);
+        initializeDB();
     }
 
     public void onRegisterClick(View view){
@@ -107,19 +114,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onStatusHistory (View view){
-        String URL = "http://192.168.0.10/Android/showownposts.php";
+        String URL = "https://192.168.0.10/Android/showownposts.php";
         getOwnPost(uid,URL,uname);
     }
 
     public void onSearch (View view){
-        String URL = "http://192.168.0.10/Android/searchuser.php";
+        String URL = "https://192.168.0.10/Android/searchuser.php";
         EditText x = (EditText) findViewById(R.id.SearchUser);
         String key = x.getText().toString();
         SearchUser(key,URL);
     }
 
     public void doPost (View view){
-        String URL = "http://192.168.0.10/Android/poststatus.php";
+        String URL = "https://192.168.0.10/Android/poststatus.php";
         EditText x = (EditText) findViewById(R.id.Status);
         String status = x.getText().toString();
         if (status.length() > 200){
@@ -139,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
         String username = un.getText().toString();
         EditText pw = (EditText) findViewById(R.id.PasswordReg);
         String password = pw.getText().toString();
-        String URL = "http://192.168.0.10/Android/reguser.php";
+        String URL = "https://192.168.0.10/Android/reguser.php";
         try {
             RegisterUser(username,password,URL);
         } catch (Exception e) {
@@ -152,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
         String username = un.getText().toString();
         EditText pw = (EditText) findViewById(R.id.Password);
         String password = pw.getText().toString();
-        String URL = "http://192.168.0.10/Android/login.php";
+        String URL = "https://192.168.0.10/Android/login.php";
         try {
             LoginUser(username,password,URL);
         } catch (Exception e) {
@@ -161,17 +168,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onPending (View view){
-        String url = "http://192.168.0.10/Android/pendingreq.php";
+        String url = "https://192.168.0.10/Android/pendingreq.php";
         GetPending(url);
     }
 
     public void onFeed (View view){
-        String url = "http://192.168.0.10/Android/showfeed.php";
+        String url = "https://192.168.0.10/Android/showfeed.php";
         ShowFeed(url);
     }
 
     public void onYourFriends (View view){
-        String url = "http://192.168.0.10/Android/showfriends.php";
+        String url = "https://192.168.0.10/Android/showfriends.php";
         ShowFriends(url);
     }
 
@@ -184,6 +191,27 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         return keyStore;
+    }
+
+    private void initializeDB(){
+        class Init extends AsyncTask<Void,Void,String>{
+
+            @Override
+            protected void onPreExecute() {
+                super.onPreExecute();
+            }
+            protected void onPostExecute(String s) {
+                super.onPostExecute(s);
+            }
+            @Override
+            protected String doInBackground(Void... voids) {
+                String URL2 = "https://192.168.0.10/Android/initialize.php";
+                JSONObject json = new JSONObject();
+                return connectNotVerify(URL2,json);
+            }
+        }
+        Init x = new Init();
+        x.execute();
     }
 
     private String Encrypt (String message, String alias)  {
@@ -248,8 +276,9 @@ public class MainActivity extends AppCompatActivity {
         JSONObject json = new JSONObject();
         json.put("username",uname);
         try {
-            URL url = new URL("http://192.168.0.10/Android/verifycookie.php");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            URL url = new URL("https://192.168.0.10/Android/verifycookie.php");
+            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            conn.setHostnameVerifier(VERIFY_LOCALHOST);
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Accept", "application/json");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -286,6 +315,7 @@ public class MainActivity extends AppCompatActivity {
                 return false;
         }
         catch (Exception e){
+            e.printStackTrace();
             return false;
         }
     }
@@ -296,7 +326,8 @@ public class MainActivity extends AppCompatActivity {
                 return "timeout";
             }
             URL url = new URL(URL2);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            conn.setHostnameVerifier(VERIFY_LOCALHOST);
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Accept", "application/json");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -325,6 +356,7 @@ public class MainActivity extends AppCompatActivity {
             return sb.toString().trim();
         }
         catch (Exception e){
+            e.printStackTrace();
             return null;
         }
     }
@@ -359,7 +391,8 @@ public class MainActivity extends AppCompatActivity {
                 return null;
             }
             URL url = new URL(URL2);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            conn.setHostnameVerifier(VERIFY_LOCALHOST);
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Accept", "application/json");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -601,14 +634,14 @@ public class MainActivity extends AppCompatActivity {
                 builder.setMessage("Accept Friend Request?");
                 builder.setPositiveButton("Accept", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
-                        AcceptDeleteReq(ids[position],"http://192.168.0.10/Android/acceptreq.php");
+                        AcceptDeleteReq(ids[position],"https://192.168.0.10/Android/acceptreq.php");
                         dialog.dismiss();
                     }
                 });
                 builder.setNegativeButton("Delete", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        AcceptDeleteReq(ids[position],"http://192.168.0.10/Android/deletereq.php");
+                        AcceptDeleteReq(ids[position],"https://192.168.0.10/Android/deletereq.php");
                         dialog.dismiss();
                     }
                 });
@@ -634,7 +667,7 @@ public class MainActivity extends AppCompatActivity {
                     JSONObject js = new JSONObject(s);
                     Toast.makeText(getApplication(),js.getString("message"),Toast.LENGTH_LONG).show();
                     setContentView(R.layout.pending_requests);
-                    String url = "http://192.168.0.10/Android/pendingreq.php";
+                    String url = "https://192.168.0.10/Android/pendingreq.php";
                     GetPending(url);
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -796,7 +829,7 @@ public class MainActivity extends AppCompatActivity {
                         builder.setPositiveButton("YES", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int which) {
                                 dialog.dismiss();
-                                AddFriend(id,"http://192.168.0.10/Android/addfriend.php");
+                                AddFriend(id,"https://192.168.0.10/Android/addfriend.php");
                             }
                         });
                         builder.setNegativeButton("NO", new DialogInterface.OnClickListener() {
@@ -812,7 +845,7 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(getApplicationContext(),js.getString("message"),Toast.LENGTH_LONG).show();
                     }
                     else {
-                        String URLs = "http://192.168.0.10/Android/showownposts.php";
+                        String URLs = "https://192.168.0.10/Android/showownposts.php";
                         getOwnPost(id,URLs,uname);
                     }
                 } catch (JSONException e) {
@@ -857,7 +890,7 @@ public class MainActivity extends AppCompatActivity {
         {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                onSearchClick(ids[position], "http://192.168.0.10/Android/checkfriends.php", names[position]);
+                onSearchClick(ids[position], "https://192.168.0.10/Android/checkfriends.php", names[position]);
                 //Toast.makeText(MainActivity.this, status[position], Toast.LENGTH_SHORT).show();
             }
         });
@@ -973,7 +1006,7 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     JSONObject js = new JSONObject(s);
                     uid = Integer.parseInt(js.getString("id"));
-                    AddSession("http://192.168.0.10/Android/storesession.php");
+                    AddSession("https://192.168.0.10/Android/storesession.php");
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -1034,7 +1067,7 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     JSONObject x = new JSONObject(s);
                     if (x.getString("error").equals("false")){
-                        AddUserToMain(username,"http://192.168.0.10/Android/addusertomain.php");
+                        AddUserToMain(username,"https://192.168.0.10/Android/addusertomain.php");
                     }
                     Toast.makeText(getApplicationContext(), x.getString("message"), Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
@@ -1075,7 +1108,7 @@ public class MainActivity extends AppCompatActivity {
                     JSONObject x = new JSONObject(s);
                     if (x.getString("error").equals("false")){
                         uname = username;
-                        getID(username,"http://192.168.0.10/Android/getid.php");
+                        getID(username,"https://192.168.0.10/Android/getid.php");
                         setContentView(R.layout.main_page);
                         cache.refresh();
                     }
