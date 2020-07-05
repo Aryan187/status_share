@@ -106,6 +106,16 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.login_page);
         uname = "";
         uid = 0;
+        cache = new DBHelper(this);
+        msCookieManager.getCookieStore().removeAll();
+    }
+
+    @Override
+    public void onDestroy () {
+        super.onDestroy();
+        uname = "";
+        uid = 0;
+        cache = new DBHelper(this);
         msCookieManager.getCookieStore().removeAll();
     }
 
