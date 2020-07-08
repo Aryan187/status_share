@@ -706,7 +706,7 @@ public class MainActivity extends AppCompatActivity {
             for (int i = 0; i < n - 2; i++) {
                 JSONObject obj = new JSONObject(js.getString(String.valueOf(i)));
                 status[i] = obj.getString("status") + "   " + obj.getString("time");
-                cache.addPost(obj.getString("status"),usid,obj.getString("time"),uname,obj.getInt("statusid"));
+                cache.addPost(Encrypt(obj.getString("status"),uname+obj.getString("time")),usid,obj.getString("time"),uname,obj.getInt("statusid"));
                 //Toast.makeText(getApplicationContext(),status[i],Toast.LENGTH_LONG).show();
             }
 
