@@ -4,7 +4,7 @@ This project was done under the supervision of Dr. Alptekin Küpçü of Koç Uni
 
 ## Installation
 * Install XAMPP (https://www.apachefriends.org/index.html)
-* Copy the contents of the "server" folder into your XAMPP installation directory and start/restart the server.
+* Copy the contents of the "server" folder into your XAMPP installation directory (Default is C:/xampp) and start/restart the server.
 * It is assumed that the password of the root account is set to "". If not, change the password field in line 4 of every .php file.
 * Run localhost/Android/initialize.php and localhost/AndroidMulti/initialize.php in your browser to create all the required databases.
 * Import all the other files of the repository into Android Studio.
