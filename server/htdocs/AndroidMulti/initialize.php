@@ -11,9 +11,11 @@ if (!$conn) {
 }
 
 // Create database
-$stmt = $conn->prepare("CREATE DATABASE IF NOT EXISTS ss_auth;");
+$stmt = $conn->prepare("CREATE DATABASE IF NOT EXISTS ssmulti_auth;");
 $stmt->execute();
-$stmt = $conn->prepare("CREATE DATABASE IF NOT EXISTS ss_main;");
+$stmt = $conn->prepare("CREATE DATABASE IF NOT EXISTS ssmulti_main1;");
+$stmt->execute();
+$stmt = $conn->prepare("CREATE DATABASE IF NOT EXISTS ssmulti_main2;");
 $stmt->execute();
 $database="ssmulti_auth";
 $conn = mysqli_connect($servername, $username, $password, $database);
