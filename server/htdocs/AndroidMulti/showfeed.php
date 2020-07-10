@@ -20,8 +20,8 @@ if($_SERVER['REQUEST_METHOD']=='POST'){
 		
 	$stmt = $conn->prepare("SELECT DISTINCT status.status_id, userdata.user_id, userdata.user_name, 
 	status.status, status.timestamp FROM userdata, status, friends WHERE userdata.user_id = status.user_id_fk AND 
-	(userdata.user_id = ? OR (CASE WHEN friends.friend_one = ? THEN friends.friend_two = userdata.user_id WHEN 
-	friends.friend_two = ? THEN friends.friend_one = userdata.user_id END)) ORDER BY status.timestamp DESC;");
+	(userdata.user_id = ? OR (CASE WHEN friends.friend_one = ? THEN (friends.friend_two = userdata.user_id AND friends.friend_status = 1) WHEN 
+	friends.friend_two = ? THEN (friends.friend_one = userdata.user_id AND friends.friend_status = 1) END)) ORDER BY status.timestamp DESC;");
 	$stmt->bind_param("iii",$userid,$userid,$userid);
 		
 	//if data inserts successfully
